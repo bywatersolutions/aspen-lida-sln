@@ -6,7 +6,7 @@ import * as ScreenOrientation from 'expo-screen-orientation';
 import _ from 'lodash';
 import moment from 'moment';
 import { Box, Button, Center, Flex, Icon, Image, Modal, Text, useColorModeValue, useContrastText } from 'native-base';
-import React, {Fragment} from 'react';
+import React from 'react';
 import { Dimensions } from 'react-native';
 import Barcode from 'react-native-barcode-expo';
 import { Extrapolate, interpolate, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
@@ -347,7 +347,7 @@ const CreateLibraryCard = (data) => {
                ) : null} 
                <Center>
                     {showExpirationDate && expirationDate && !neverExpires && numCards > 1 ? <Text color={cardText}>{expirationText}</Text> : null}
-                    {numCards > 1 ? <OpenBarcode barcodeValue={barcodeValue} barcodeFormat={barcodeStyle} handleBarcodeError={handleBarcodeError} language={language} /> : <Fragment><Barcode value={barcodeValue} format={barcodeStyle} background="warmGray.100" onError={handleBarcodeError} /><Text style={{fontSize: 20, textAlign: 'center'}}>{barcodeValue}</Text></Fragment>}
+                    {numCards > 1 ? <OpenBarcode barcodeValue={barcodeValue} barcodeFormat={barcodeStyle} handleBarcodeError={handleBarcodeError} language={language} /> : <><Barcode value={barcodeValue} format={barcodeStyle} background="warmGray.100" onError={handleBarcodeError} /><Text style={{fontSize: 20, textAlign: 'center'}}>{barcodeValue}</Text></>}
                     {showExpirationDate && expirationDate && !neverExpires && numCards === 1 ? (
                          <Text color={cardText} fontSize={10} pt={2}>
                               {expirationText}

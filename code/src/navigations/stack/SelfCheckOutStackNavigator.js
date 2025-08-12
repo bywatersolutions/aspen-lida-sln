@@ -1,5 +1,6 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { ChevronLeftIcon, CloseIcon, Pressable, Icon } from 'native-base';
+import { Pressable, Icon } from '@gluestack-ui/themed';
+import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
 
 import { LanguageContext, UserContext } from '../../context/initialContext';
@@ -64,8 +65,8 @@ const SelfCheckOutStackNavigator = () => {
                               return <></>;
                          },
                          headerRight: () => (
-                              <Pressable onPress={() => navigation.goBack()} mr={3} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-                                   <CloseIcon color="primary.baseContrast" size={5} />
+                              <Pressable onPress={() => navigation.goBack()} mr="$3" hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+                                   <Icon as={MaterialIcons} name="close" size="md" />
                               </Pressable>
                          ),
                     })}

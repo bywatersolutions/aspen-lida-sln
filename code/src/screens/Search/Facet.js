@@ -324,9 +324,9 @@ export default class Facet extends Component {
                          {this.searchBar()}
                          <ScrollView>
                               <Box safeAreaX={5}>
-                                   <Checkbox.Group name={category} value={this.state.values} accessibilityLabel={getTermFromDictionary(this.state.language, 'filter_by')} onChange={(values) => this.updateLocalValues(category, values)}>
+                                   <Checkbox.Group name={category} value={this.state.values} accessibilityLabel={getTermFromDictionary(this.state.language, 'filter_by')}>
                                         {facets.map((item, index) => {
-                                             return <Facet_Checkbox key={index} data={item} language={this.state.language} />;
+                                             return <Facet_Checkbox key={index} data={item} language={this.state.language} updateLocalValues={this.updateLocalValues} category={category} values={this.state.values}/>;
                                         })}
 
                                    </Checkbox.Group>

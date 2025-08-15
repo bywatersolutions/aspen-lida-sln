@@ -291,11 +291,10 @@ export const FiltersScreen = () => {
                                         placeholder={getTermFromDictionary(language, 'search')}
                                         onSubmitEditing={search}
                                         value={searchTerm}
-                                        size="xl"
-                                        _dark={{
-                                             color: 'muted.50',
-                                             borderColor: 'muted.50',
-                                        }}
+                                        _stack={{ style: {
+                                             outlineWidth: 0,
+                                                  borderWidth: 1
+                                             } }}
                                         InputLeftElement={
                                              <Icon
                                                   as={<Ionicons name="search" />}
@@ -325,7 +324,7 @@ export const FiltersScreen = () => {
 
                          {!isLoading ? (
                               <>
-                                   <Pressable key={0} borderBottomWidth="1" _dark={{ borderColor: 'gray.600' }} borderColor="coolGray.200" py="5" onPress={() => openSearchIndexes()}>
+                                   <Pressable key={0} borderBottomWidth={1} _dark={{ borderColor: 'gray.600' }} borderColor="coolGray.200" py="5" onPress={() => openSearchIndexes()}>
                                         <VStack alignContent="center">
                                              <HStack justifyContent="space-between" alignItems="center" alignContent="center">
                                                   <VStack>
@@ -336,7 +335,7 @@ export const FiltersScreen = () => {
                                              </HStack>
                                         </VStack>
                                    </Pressable>
-                                   <Pressable key={1} borderBottomWidth="1" _dark={{ borderColor: 'gray.600' }} borderColor="coolGray.200" py="5" onPress={() => openSearchSources()}>
+                                   <Pressable key={1} borderBottomWidth={1} _dark={{ borderColor: 'gray.600' }} borderColor="coolGray.200" py="5" onPress={() => openSearchSources()}>
                                         <VStack alignContent="center">
                                              <HStack justifyContent="space-between" alignItems="center" alignContent="center">
                                                   <VStack>

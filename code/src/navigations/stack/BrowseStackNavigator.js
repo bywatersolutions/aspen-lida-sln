@@ -17,7 +17,7 @@ import { CreateLocalIllRequestEmail } from '../../screens/GroupedWork/CreateLoca
 import { Editions } from '../../screens/GroupedWork/Editions';
 import { GroupedWorkScreen } from '../../screens/GroupedWork/GroupedWork';
 import { WhereIsIt } from '../../screens/GroupedWork/WhereIsIt';
-import Facet from '../../screens/Search/Facet';
+import { Facet } from '../../screens/Search/Facet';
 import { SearchIndexScreen } from '../../screens/Search/Facets/SearchIndex';
 import { SearchSourceScreen } from '../../screens/Search/Facets/SearchSource';
 import { FiltersScreen } from '../../screens/Search/Filters';

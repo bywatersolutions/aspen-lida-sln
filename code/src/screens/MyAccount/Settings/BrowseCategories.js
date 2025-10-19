@@ -9,6 +9,7 @@ import { BrowseCategoryContext, LanguageContext, LibrarySystemContext, ThemeCont
 import { getBrowseCategoryListForUser, updateBrowseCategoryStatus } from '../../../util/loadPatron';
 import { getErrorMessage } from '../../../util/apiAuth';
 import { logDebugMessage, logErrorMessage } from '../../../util/logging';
+import _ from 'lodash';
 
 export const Settings_BrowseCategories = () => {
      const navigation = useNavigation();
@@ -18,7 +19,6 @@ export const Settings_BrowseCategories = () => {
      const { list, updateBrowseCategoryList } = React.useContext(BrowseCategoryContext);
      const { theme } = React.useContext(ThemeContext);
      const route = useRoute();
-     console.log(route.params);
 
      const handleGoBack = () => {
           if (route?.params?.prevRoute === 'HomeScreen') {
@@ -42,8 +42,18 @@ export const Settings_BrowseCategories = () => {
      const { status, data, error, isFetching } = useQuery(['browse_categories_list', library.baseUrl, language], () => getBrowseCategoryListForUser(library.baseUrl), {
           initialData: list,
           onSuccess: (data) => {
-               updateBrowseCategoryList(data);
-               setLoading(false);
+               if(data.ok){
+                    const categories = _.sortBy(data.data.result, ['title']);
+                    updateBrowseCategoryList(categories);
+               } else {
+                    logDebugMessage("Error fetching browse category list for user");
+                    logDebugMessage(data);
+                    getErrorMessage(data.code, data.problem)
+               }
+          },
+          onError: (error) => {
+               logDebugMessage("Error fetching browse category list for user");
+               logErrorMessage(error);
           },
           onSettle: (data) => {
                setLoading(false);

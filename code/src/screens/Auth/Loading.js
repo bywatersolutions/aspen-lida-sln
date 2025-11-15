@@ -212,7 +212,7 @@ export const LoadingScreen = () => {
           };
      }, []);
 
-     const { isSuccess: librarySystemQuerySuccess, status: librarySystemQueryStatus, data: librarySystemQuery } = useQuery(['library_system', LIBRARY.url], () => getLibraryInfo(LIBRARY.url), {
+     const { isSuccess: librarySystemQuerySuccess, status: librarySystemQueryStatus, data: librarySystemQuery } = useQuery(['library_system', LIBRARY.url], () => getLibraryInfo(LIBRARY.url, LIBRARY.id), {
           enabled: hasError === false && languagesQuerySuccess,
           onSuccess: (data) => {
                if(data.ok) {
@@ -529,7 +529,7 @@ export const LoadingScreen = () => {
           }
      });
 
-     const { isSuccess: notificationHistoryQuerySuccess, status: notificationHistoryQueryStatus, data: notificationHistoryQuery } = useQuery(['notification_history'], () => fetchNotificationHistory(1, 20, true, library.baseUrl, 'en'), {
+     const { isSuccess: notificationHistoryQuerySuccess, status: notificationHistoryQueryStatus, data: notificationHistoryQuery } = useQuery(['notification_history'], () => fetchNotificationHistory(1, 20, true, LIBRARY.url, 'en'), {
           enabled: hasError === false && appPreferencesQuerySuccess,
           onSuccess: (data) => {
                if(data.ok) {

@@ -2,13 +2,15 @@ import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigation } from '@react-navigation/native';
 import { LanguageContext, LibrarySystemContext, ThemeContext, UserContext } from '../../../context/initialContext';
-import { Center, Button, ButtonIcon, ButtonText, ButtonGroup, Modal, ModalBackdrop, ModalContent, ModalHeader, ModalBody, ModalFooter, Heading, ModalCloseButton, Icon, CloseIcon } from '@gluestack-ui/themed';
+import { Center, Button, ButtonIcon, ButtonText, ButtonGroup, Modal, ModalBackdrop, ModalContent, ModalHeader, ModalBody, ModalFooter, Heading, ModalCloseButton, Icon, CloseIcon, Text } from '@gluestack-ui/themed';
 import { MaterialIcons } from '@expo/vector-icons';
 import { getTermFromDictionary } from '../../../translations/TranslationService';
+import { deleteListGroup } from '../../../util/api/list';
+import { popAlert } from '../../../components/loadError';
+import { navigateStack } from '../../../helpers/RootNavigator';
 
-export const DeleteListGroup = (props) => {
+export const DeleteListGroup = ({id}) => {
      const queryClient = useQueryClient();
-     const { data, listGroupId } = props;
      const navigation = useNavigation();
      const { user } = React.useContext(UserContext);
      const { library } = React.useContext(LibrarySystemContext);
@@ -23,9 +25,9 @@ export const DeleteListGroup = (props) => {
 
      return (
           <Center>
-               <Button onPress={toggle} size="sm" bgColor={theme['colors']['primary']['500']}>
-                    <ButtonIcon color={theme['colors']['primary']['500-text']} as={MaterialIcons} name="add" mr="$1" />
-                    <ButtonText color={theme['colors']['primary']['500-text']}>{getTermFromDictionary(language, 'delete_list_group')}</ButtonText>
+               <Button onPress={toggle} size="xs" bgColor={theme['colors']['danger']['500']}>
+                    <ButtonIcon color={theme['colors']['white']} as={MaterialIcons} name="delete" mr="$1" />
+                    <ButtonText color={theme['colors']['white']}>{getTermFromDictionary(language, 'delete_list_group')}</ButtonText>
                </Button>
                <Modal isOpen={showModal} onClose={toggle} size="full" avoidKeyboard>
                     <ModalBackdrop />
@@ -37,11 +39,39 @@ export const DeleteListGroup = (props) => {
                               </ModalCloseButton>
                          </ModalHeader>
                          <ModalBody>
+                              <Text color={textColor}>{getTermFromDictionary(language, 'delete_list_group_confirmation')}</Text>
                          </ModalBody>
                          <ModalFooter>
                               <ButtonGroup>
                                    <Button variant="outline" onPress={toggle} borderColor={theme['colors']['primary']['500']}>
-                                        <ButtonText color={theme['colors']['primary']['500']}>{getTermFromDictionary(language, 'close_window')}</ButtonText>
+                                        <ButtonText color={theme['colors']['primary']['500']}>{getTermFromDictionary(language, 'cancel')}</ButtonText>
+                                   </Button>
+                                   <Button bgColor={theme['colors']['danger']['500']}
+                                           isLoading={loading}
+                                           isLoadingText={getTermFromDictionary(language, 'deleting', true)}
+                                           onPress={() => {
+                                                setLoading(true);
+                                                deleteListGroup(id, library.baseUrl).then(async (res) => {
+                                                     queryClient.invalidateQueries({ queryKey: ['list_groups', user.id, library.baseUrl, language] });
+                                                     queryClient.invalidateQueries({ queryKey: ['lists', user.id, library.baseUrl, language] });
+                                                     queryClient.invalidateQueries({ queryKey: ['user', library.baseUrl, language] });
+                                                     setLoading(false);
+                                                     let status = 'success';
+                                                     setIsOpen(!isOpen);
+                                                     if (res.success === false) {
+                                                          status = 'error';
+                                                          popAlert(res.title, res.message, status);
+                                                     } else {
+                                                          popAlert(res.title, res.message, status);
+                                                          navigateStack('AccountScreenTab', 'MyLists', {
+                                                               libraryUrl: library.baseUrl,
+                                                               hasPendingChanges: true,
+                                                          });
+                                                     }
+                                                });
+                                           }}
+                                   >
+                                        <ButtonText color={theme['colors']['white']}>{getTermFromDictionary(language, 'delete')}</ButtonText>
                                    </Button>
                               </ButtonGroup>
                          </ModalFooter>

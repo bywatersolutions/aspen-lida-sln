@@ -35,7 +35,7 @@ const CreateListGroup = (props) => {
           <Center>
                <Button onPress={toggle} size="sm" bgColor={theme['colors']['primary']['500']}>
                     <ButtonIcon color={theme['colors']['primary']['500-text']} as={MaterialIcons} name="add" mr="$1" />
-                    <ButtonText color={theme['colors']['primary']['500-text']}>{getTermFromDictionary(language, 'create_new_list')}</ButtonText>
+                    <ButtonText color={theme['colors']['primary']['500-text']}>{getTermFromDictionary(language, 'create_new_list_group')}</ButtonText>
                </Button>
                <Modal isOpen={showModal} onClose={toggle} size="full" avoidKeyboard>
                     <ModalBackdrop />
@@ -85,7 +85,7 @@ const CreateListGroup = (props) => {
                                                        <SelectDragIndicator />
                                                   </SelectDragIndicatorWrapper>
                                                   <SelectItem label={getTermFromDictionary(language, 'nest_within_group_no')} value="no" key={1} sx={{ _text: { color: textColor } }} />
-                                                  {_.map(listGroups, function (item, index, array) {
+                                                  {_.map(listGroups.groups, function (item, index, array) {
                                                        return <SelectItem key={index} value={item.id} label={item.title} bgColor={nestedGroupId === item.id ? theme['colors']['tertiary']['300'] : ''} sx={{ _text: { color: nestedGroupId === item.id ? theme['colors']['tertiary']['500-text'] : textColor } }} />;
                                                   })}
                                              </SelectContent>

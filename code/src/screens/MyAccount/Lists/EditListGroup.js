@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigation } from '@react-navigation/native';
 import { LanguageContext, LibrarySystemContext, ThemeContext, UserContext } from '../../../context/initialContext';
-import { Button, ButtonGroup, ButtonIcon, ButtonText, Center, CloseIcon, Heading, Icon, Modal, ModalBackdrop, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader } from '@gluestack-ui/themed';
+import { Button, ButtonGroup, ButtonIcon, ButtonText, Center, CloseIcon, FormControl, FormControlLabel, FormControlLabelText, Heading, Icon, Input, InputField, Modal, ModalBackdrop, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader } from '@gluestack-ui/themed';
 import { MaterialIcons } from '@expo/vector-icons';
 import { getTermFromDictionary } from '../../../translations/TranslationService';
+import { editListGroup } from '../../../util/api/list';
+import _ from 'lodash';
 
-export const EditListGroup = (props) => {
+export const EditListGroup = ({currentTitle, id}) => {
      const queryClient = useQueryClient();
-     const { data, listGroupId } = props;
      const navigation = useNavigation();
      const { user } = React.useContext(UserContext);
      const { library } = React.useContext(LibrarySystemContext);
@@ -17,7 +18,7 @@ export const EditListGroup = (props) => {
      const [showModal, setShowModal] = React.useState(false);
      const [loading, setLoading] = React.useState(false);
 
-     const [title, setTitle] = React.useState(data.title);
+     const [title, setTitle] = React.useState(currentTitle);
 
      const toggle = () => {
           setShowModal(!showModal);
@@ -25,7 +26,7 @@ export const EditListGroup = (props) => {
 
      return (
           <Center>
-               <Button onPress={toggle} size="sm" bgColor={theme['colors']['primary']['500']}>
+               <Button onPress={toggle} size="xs" bgColor={theme['colors']['primary']['500']}>
                     <ButtonIcon color={theme['colors']['primary']['500-text']} as={MaterialIcons} name="edit" mr="$1" />
                     <ButtonText color={theme['colors']['primary']['500-text']}>{getTermFromDictionary(language, 'rename_list_group')}</ButtonText>
                </Button>
@@ -39,11 +40,33 @@ export const EditListGroup = (props) => {
                               </ModalCloseButton>
                          </ModalHeader>
                          <ModalBody>
+                              <FormControl pb="$5">
+                                   <FormControlLabel>
+                                        <FormControlLabelText color={textColor}>{getTermFromDictionary(language, 'rename_list_group_to')}</FormControlLabelText>
+                                   </FormControlLabel>
+                                   <Input borderColor={colorMode === 'light' ? theme['colors']['coolGray']['500'] : theme['colors']['gray']['300']}><InputField id="title" defaultValue={currentTitle} autoComplete="off" onChangeText={(text) => setTitle(text)} color={textColor}/></Input>
+                              </FormControl>
                          </ModalBody>
                          <ModalFooter>
                               <ButtonGroup>
                                    <Button variant="outline" onPress={toggle} borderColor={theme['colors']['primary']['500']}>
                                         <ButtonText color={theme['colors']['primary']['500']}>{getTermFromDictionary(language, 'close_window')}</ButtonText>
+                                   </Button>
+                                   <Button bgColor={theme['colors']['primary']['500']}
+                                           isLoading={loading}
+                                           isLoadingText={getTermFromDictionary(language, 'saving', true)}
+                                           onPress={() => {
+                                                setLoading(true);
+                                                editListGroup(id, title, library.baseUrl).then(async (res) => {
+                                                     setLoading(false);
+                                                     if (!_.isNull(title)) {
+                                                          navigation.setOptions({ title: title });
+                                                     }
+                                                     setShowModal(false);
+                                                     queryClient.invalidateQueries({ queryKey: ['list_groups', user.id, library.baseUrl, language] });
+                                                });
+                                           }}>
+                                        <ButtonText color={theme['colors']['primary']['500-text']}>{getTermFromDictionary(language, 'save')}</ButtonText>
                                    </Button>
                               </ButtonGroup>
                          </ModalFooter>

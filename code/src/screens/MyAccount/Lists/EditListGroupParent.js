@@ -2,22 +2,26 @@ import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigation } from '@react-navigation/native';
 import { LanguageContext, LibrarySystemContext, ThemeContext, UserContext } from '../../../context/initialContext';
-import { Center, Button, ButtonIcon, ButtonText, Modal, ModalBackdrop, ModalContent, ModalHeader, Heading, ModalCloseButton, Icon, CloseIcon, ModalBody, ModalFooter, ButtonGroup } from '@gluestack-ui/themed';
+import { Center, Button, ButtonIcon, ButtonText, Modal, ModalBackdrop, ModalContent, ModalHeader, Heading, ModalCloseButton, Icon, CloseIcon, ModalBody, ModalFooter, ButtonGroup, FormControlLabel, FormControlLabelText, Select, SelectTrigger, SelectInput, SelectIcon, ChevronDownIcon, SelectPortal, SelectBackdrop, SelectContent, SelectDragIndicatorWrapper, SelectDragIndicator, SelectItem, FormControl } from '@gluestack-ui/themed';
 import { MaterialIcons } from '@expo/vector-icons';
 import { getTermFromDictionary } from '../../../translations/TranslationService';
+import { editListGroupParent } from '../../../util/api/list';
+import { popAlert } from '../../../components/loadError';
+import { navigateStack } from '../../../helpers/RootNavigator';
+import { Platform } from 'react-native';
+import _ from 'lodash';
 
-export const EditListGroupParent = (props) => {
+export const EditListGroupParent = ({id, parentId}) => {
      const queryClient = useQueryClient();
-     const { data, listGroupId } = props;
      const navigation = useNavigation();
-     const { user } = React.useContext(UserContext);
+     const { user, listGroups } = React.useContext(UserContext);
      const { library } = React.useContext(LibrarySystemContext);
      const { language } = React.useContext(LanguageContext);
      const { textColor, theme, colorMode } = React.useContext(ThemeContext);
      const [showModal, setShowModal] = React.useState(false);
      const [loading, setLoading] = React.useState(false);
 
-     const [newListGroupParentId, setNewListGroupParentId] = React.useState(data.id); // default state is current list group parent id
+     const [newListGroupParentId, setNewListGroupParentId] = React.useState(parentId); // default state is current list group parent id
 
      const toggle = () => {
           setShowModal(!showModal);
@@ -25,7 +29,7 @@ export const EditListGroupParent = (props) => {
 
      return (
           <Center>
-               <Button onPress={toggle} size="sm" bgColor={theme['colors']['primary']['500']}>
+               <Button onPress={toggle} size="xs" bgColor={theme['colors']['primary']['500']}>
                     <ButtonIcon color={theme['colors']['primary']['500-text']} as={MaterialIcons} name="edit" mr="$1" />
                     <ButtonText color={theme['colors']['primary']['500-text']}>{getTermFromDictionary(language, 'move_list_group')}</ButtonText>
                </Button>
@@ -39,11 +43,67 @@ export const EditListGroupParent = (props) => {
                               </ModalCloseButton>
                          </ModalHeader>
                          <ModalBody>
+                              <FormControl pb="$5">
+                                   <FormControlLabel>
+                                        <FormControlLabelText color={textColor}>{getTermFromDictionary(language, 'move_list_group_to')}</FormControlLabelText>
+                                   </FormControlLabel>
+                                   <Select
+                                        name="newListGroupParent"
+                                        selectedValue={newListGroupParentId}
+                                        accessibilityLabel={getTermFromDictionary(language, 'move_list_group_to')}
+                                        mt="$1"
+                                        mb="$2"
+                                        onValueChange={(itemValue) => setNewListGroupParentId(itemValue)}>
+                                        <SelectTrigger variant="outline" size="md">
+                                             <SelectInput color={textColor} value={newListGroupParentId} />
+                                             <SelectIcon mr="$3" as={ChevronDownIcon} color={textColor} />
+                                        </SelectTrigger>
+                                        <SelectPortal>
+                                             <SelectBackdrop />
+                                             <SelectContent
+                                                  bgColor={colorMode === 'light' ? theme['colors']['warmGray']['50'] : theme['colors']['coolGray']['700']}
+                                                  pb={Platform.OS === 'android' ? insets.bottom + 16 : '$4'}
+                                             >
+                                                  <SelectDragIndicatorWrapper>
+                                                       <SelectDragIndicator />
+                                                  </SelectDragIndicatorWrapper>
+                                                  {_.map(listGroups.groups, function (item, index, array) {
+                                                       return <SelectItem key={index} value={item.id} label={item.title} bgColor={newListGroupParentId === item.id ? theme['colors']['tertiary']['300'] : ''} sx={{ _text: { color: newListGroupParentId === item.id ? theme['colors']['tertiary']['500-text'] : textColor } }} />;
+                                                  })}
+                                             </SelectContent>
+                                        </SelectPortal>
+                                   </Select>
+                              </FormControl>
                          </ModalBody>
                          <ModalFooter>
                               <ButtonGroup>
                                    <Button variant="outline" onPress={toggle} borderColor={theme['colors']['primary']['500']}>
                                         <ButtonText color={theme['colors']['primary']['500']}>{getTermFromDictionary(language, 'close_window')}</ButtonText>
+                                   </Button>
+                                   <Button bgColor={theme['colors']['primary']['500']}
+                                           isLoading={loading}
+                                           isLoadingText={getTermFromDictionary(language, 'saving', true)}
+                                           onPress={() => {
+                                                setLoading(true);
+                                                editListGroupParent(id, newListGroupParentId, library.baseUrl).then(async (res) => {
+                                                     queryClient.invalidateQueries({ queryKey: ['list_groups', user.id, library.baseUrl, language] });
+                                                     queryClient.invalidateQueries({ queryKey: ['lists', user.id, library.baseUrl, language] });
+                                                     setLoading(false);
+                                                     let status = 'success';
+                                                     setIsOpen(!isOpen);
+                                                     if (res.success === false) {
+                                                          status = 'error';
+                                                          popAlert(res.title, res.message, status);
+                                                     } else {
+                                                          popAlert(res.title, res.message, status);
+                                                          navigateStack('AccountScreenTab', 'MyLists', {
+                                                               libraryUrl: library.baseUrl,
+                                                               hasPendingChanges: true,
+                                                          });
+                                                     }
+                                                });
+                                           }}>
+                                        <ButtonText color={theme['colors']['primary']['500-text']}>{getTermFromDictionary(language, 'save')}</ButtonText>
                                    </Button>
                               </ButtonGroup>
                          </ModalFooter>

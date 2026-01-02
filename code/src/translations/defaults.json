@@ -664,5 +664,7 @@
   "new_list_group_name": "New List Group Name",
   "should_nest_list_group":"Nest within another group?",
   "nest_within_group_no":"No, do not nest within another group",
-  "choose_existing_list_group": "Choose a List Group"
+  "choose_existing_list_group": "Choose a List Group",
+  "create_new_list_group": "Create New List Group",
+  "create_list_group": "Create List Group"
 }

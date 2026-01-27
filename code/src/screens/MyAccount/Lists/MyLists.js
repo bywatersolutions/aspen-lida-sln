@@ -3,7 +3,7 @@ import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import _ from 'lodash';
 import moment from 'moment';
-import { Badge, BadgeText, Box, Center, ChevronDownIcon, FlatList, Heading, HStack, Pressable, ScrollView, Select, SelectBackdrop, SelectContent, SelectDragIndicator, SelectDragIndicatorWrapper, SelectIcon, SelectInput, SelectItem, SelectPortal, SelectTrigger, Text, VStack, ButtonGroup } from '@gluestack-ui/themed';
+import { Badge, BadgeText, Box, Center, ChevronDownIcon, FlatList, Heading, HStack, Pressable, ScrollView, Select, SelectBackdrop, SelectContent, SelectDragIndicator, SelectDragIndicatorWrapper, SelectIcon, SelectInput, SelectItem, SelectPortal, SelectTrigger, Text, VStack, ButtonGroup, Button, ButtonText } from '@gluestack-ui/themed';
 import React from 'react';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -32,6 +32,14 @@ export const MyLists = () => {
      const { library } = React.useContext(LibrarySystemContext);
      const { lists, updateLists, listGroups, updateListGroups } = React.useContext(UserContext);
      const { language } = React.useContext(LanguageContext);
+     const [page, setPage] = React.useState(1);
+     const [pageGroups, setPageGroups] = React.useState(1);
+     const [pageUnassigned, setPageUnassigned] = React.useState(1);
+
+     const [paginationLabel, setPaginationLabel] = React.useState('Page 1 of 1');
+     const [paginationGroupsLabel, setPaginationGroupsLabel] = React.useState('Page 1 of 1');
+     const [paginationUnassignedLabel, setPaginationUnassignedLabel] = React.useState('Page 1 of 1');
+
 
      const [loading, setLoading] = React.useState(false);
 
@@ -63,6 +71,8 @@ export const MyLists = () => {
           defaultListGroup = user.lastListGroupViewed;
      }
 
+     const pageSize = 20;
+
      React.useEffect(() => {
           if (defaultListGroup) {
                updateSelectedListGroup(defaultListGroup);
@@ -73,8 +83,8 @@ export const MyLists = () => {
           if (isFocused) {
                if (hasPendingChanges) {
                     setLoading(true);
-                    queryClient.invalidateQueries({ queryKey: ['lists', user.id, library.baseUrl, language] });
-                    queryClient.invalidateQueries({ queryKey: ['list_groups', user.id, library.baseUrl, language] });
+                    queryClient.invalidateQueries({ queryKey: ['lists', user.id, page, library.baseUrl, language] });
+                    queryClient.invalidateQueries({ queryKey: ['list_groups', user.id, pageGroups, pageUnassigned, library.baseUrl, language] });
                     if(currentListGroup !== -1) {
                          updateSelectedListGroup(currentListGroup);
                     }
@@ -94,12 +104,18 @@ export const MyLists = () => {
           });
      }, [navigation]);
 
-     useQuery(['lists', user.id, library.baseUrl, language], () => getLists(library.baseUrl), {
+     useQuery(['lists', user.id, page, library.baseUrl, language], () => getLists(library.baseUrl, page, pageSize, 1), {
           initialData: lists,
           onSuccess: (data) => {
                if(data.ok) {
                     const lists = formatLists(data.data.result);
                     updateLists(lists)
+                    if (lists.page_total) {
+                         let tmp = getTermFromDictionary(language, 'page_of_page');
+                         tmp = tmp.replace('%1%', page);
+                         tmp = tmp.replace('%2%', lists.page_total);
+                         setPaginationLabel(tmp);
+                    }
                } else {
                     logDebugMessage("Error fetching user linked accounts");
                     logDebugMessage(data);
@@ -116,15 +132,41 @@ export const MyLists = () => {
           }
      });
 
-     useQuery(['list_groups', user.id, library.baseUrl, language], () => getListGroups(library.baseUrl), {
+     useQuery(['list_groups', user.id, pageGroups, pageUnassigned, library.baseUrl, language], () => getListGroups(library.baseUrl, pageGroups, pageUnassigned, pageSize, 1), {
           initialData: listGroups,
           onSuccess: (data) => {
                if(data.ok) {
-                    const groups = {
-                         groups: data.data?.result?.groups ?? [],
-                         unassigned: data.data?.result?.unassigned ?? []
+                    const results = {
+                         groups: data.data?.result?.groups ?? [
+                              {
+                                   groups: [],
+                                   page_current: 1,
+                                   totalResults: 0,
+                                   page_total: 1,
+                              }
+                         ],
+                         unassigned: data.data?.result?.unassigned ?? [
+                              {
+                                   lists: [],
+                                   page_current: 1,
+                                   totalResults: 0,
+                                   page_total: 1,
+                              }
+                         ],
                     };
-                    updateListGroups(groups);
+                    updateListGroups(results);
+                    if (results.groups.page_total) {
+                         let tmp = getTermFromDictionary(language, 'page_of_page');
+                         tmp = tmp.replace('%1%', pageGroups);
+                         tmp = tmp.replace('%2%', results.groups.page_total);
+                         setPaginationGroupsLabel(tmp);
+                    }
+                    if (results.unassigned.page_total) {
+                         let tmp = getTermFromDictionary(language, 'page_of_page');
+                         tmp = tmp.replace('%1%', pageUnassigned);
+                         tmp = tmp.replace('%2%', results.unassigned.page_total);
+                         setPaginationUnassignedLabel(tmp);
+                    }
                } else {
                     logDebugMessage("Error fetching user list groups");
                     logDebugMessage(data);
@@ -173,6 +215,27 @@ export const MyLists = () => {
           });
           setLoading(false);
      }
+
+     const updatePage = async (value) => {
+          logDebugMessage('updatePage for lists (no groups): ' + value);
+          setLoading(true);
+          setPage(value);
+          await queryClient.refetchQueries({ queryKey: ['lists', user.id, value, library.baseUrl] });
+     };
+
+     const updatePageGroups = async (value) => {
+          logDebugMessage('updatePage for list groups: ' + value);
+          setLoading(true);
+          setPageGroups(value);
+          await queryClient.refetchQueries({ queryKey: ['list_groups', user.id, value, library.baseUrl] });
+     };
+
+     const updatePageUnassigned = async (value) => {
+          logDebugMessage('updatePage for unassigned lists: ' + value);
+          setLoading(true);
+          setPageUnassigned(value);
+          await queryClient.refetchQueries({ queryKey: ['list_groups', user.id, value, library.baseUrl] });
+     };
 
      const handleOpenList = (item) => {
           navigateStack('AccountScreenTab', 'MyList', {
@@ -264,6 +327,90 @@ export const MyLists = () => {
           return null;
      };
 
+     const groupsPaging = () => {
+          return (
+               <Box
+                    p="$2"
+                    borderTopWidth="$1"
+                    bgColor={colorMode === 'light' ? theme['colors']['coolGray']['100'] : theme['colors']['coolGray']['700']}
+                    borderColor={colorMode === 'light' ? theme['colors']['coolGray']['400'] : theme['colors']['gray']['600']}
+                    flexWrap="nowrap"
+                    alignItems="center">
+                    <ScrollView horizontal>
+                         <ButtonGroup size="sm">
+                              <Button
+                                   bgColor={theme['colors']['primary']['500']}
+                                   onPress={async () => {
+                                        if (pageGroups > 1) {
+                                             updatePageGroups(pageGroups - 1)
+                                        }
+                                   }}
+                                   isDisabled={pageGroups === 1}>
+                                   <ButtonText color={theme['colors']['primary']['500-text']} >{getTermFromDictionary(language, 'previous')}</ButtonText>
+                              </Button>
+                              <Button
+                                   bgColor={theme['colors']['primary']['500']}
+                                   onPress={async () => {
+                                        if (lists?.page_current !== lists?.page_total) {
+                                             logDebugMessage('Adding to page');
+                                             let newPage = pageGroups + 1;
+                                             updatePageGroups(newPage);
+                                        }
+                                   }}
+                                   isDisabled={!(listGroups.groups?.page_current !== listGroups.groups?.page_total)}>
+                                   <ButtonText color={theme['colors']['primary']['500-text']} >{getTermFromDictionary(language, 'next')}</ButtonText>
+                              </Button>
+                         </ButtonGroup>
+                    </ScrollView>
+                    <Text mt="$2" fontSize="$sm" color={textColor}>
+                         {paginationGroupsLabel}
+                    </Text>
+               </Box>
+          )
+     }
+
+     const unassignedPaging = () => {
+          return (
+               <Box
+                    p="$2"
+                    borderTopWidth="$1"
+                    bgColor={colorMode === 'light' ? theme['colors']['coolGray']['100'] : theme['colors']['coolGray']['700']}
+                    borderColor={colorMode === 'light' ? theme['colors']['coolGray']['400'] : theme['colors']['gray']['600']}
+                    flexWrap="nowrap"
+                    alignItems="center">
+                    <ScrollView horizontal>
+                         <ButtonGroup size="sm">
+                              <Button
+                                   bgColor={theme['colors']['primary']['500']}
+                                   onPress={async () => {
+                                        if (pageUnassigned > 1) {
+                                             updatePageUnassigned(pageUnassigned - 1)
+                                        }
+                                   }}
+                                   isDisabled={pageUnassigned === 1}>
+                                   <ButtonText color={theme['colors']['primary']['500-text']} >{getTermFromDictionary(language, 'previous')}</ButtonText>
+                              </Button>
+                              <Button
+                                   bgColor={theme['colors']['primary']['500']}
+                                   onPress={async () => {
+                                        if (listGroups.unassigned?.page_current !== listGroups.unassigned?.page_total) {
+                                             logDebugMessage('Adding to page');
+                                             let newPage = pageUnassigned + 1;
+                                             updatePageUnassigned(newPage);
+                                        }
+                                   }}
+                                   isDisabled={!(listGroups.unassigned?.page_current !== listGroups.unassigned?.page_total)}>
+                                   <ButtonText color={theme['colors']['primary']['500-text']} >{getTermFromDictionary(language, 'next')}</ButtonText>
+                              </Button>
+                         </ButtonGroup>
+                    </ScrollView>
+                    <Text mt="$2" fontSize="$sm" color={textColor}>
+                         {paginationUnassignedLabel}
+                    </Text>
+               </Box>
+          )
+     }
+
      if (loading) {
           return loadingSpinner();
      }
@@ -279,12 +426,12 @@ export const MyLists = () => {
                               </ButtonGroup>
                          </ScrollView>
                     </Box>
-                    {hasListGroups && Object.values(listGroups.groups) ? (
+                    {hasListGroups && Object.values(listGroups.groups.groups) ? (
                          <Box px="$5" mt="$2">
                               <Select name="listGroupSelect" selectedValue={currentListGroup} defaultValue={defaultListGroup} onValueChange={(itemValue) => updateSelectedListGroup(itemValue)}>
                                    <SelectTrigger variant="outline" size="md">
                                         {currentListGroup && currentListGroup !== "-1" && currentListGroup !== -1 ? (
-                                             _.map(Object.values(listGroups.groups), function (group, selectedIndex, array) {
+                                             _.map(Object.values(listGroups.groups.groups), function (group, selectedIndex, array) {
                                                   if (group.id === currentListGroup) {
                                                        return <SelectInput value={group.title} color={textColor} />;
                                                   }
@@ -302,10 +449,10 @@ export const MyLists = () => {
                                              <SelectDragIndicatorWrapper>
                                                   <SelectDragIndicator />
                                              </SelectDragIndicatorWrapper>
-                                             {_.map(Object.values(listGroups.groups), function (item, index, array) {
+                                             {_.map(Object.values(listGroups.groups.groups), function (item, index, array) {
                                                   return <SelectItem key={index} value={item.id} label={item.title} bgColor={currentListGroup === item.id ? theme['colors']['tertiary']['300'] : ''} sx={{ _text: { color: currentListGroup === item.id ? theme['colors']['tertiary']['500-text'] : textColor } }} />;
                                              })}
-                                             {listGroups.unassigned.length > 0 ? <SelectItem key={-1} value="-1" label={getTermFromDictionary(language, 'unassigned_lists')} bgColor={currentListGroup == "-1" ? theme['colors']['tertiary']['300'] : ''} sx={{ _text: { color: currentListGroup == "-1" ? theme['colors']['tertiary']['500-text'] : textColor } }} /> : null}
+                                             {listGroups.unassigned.lists.length > 0 ? <SelectItem key={-1} value="-1" label={getTermFromDictionary(language, 'unassigned_lists')} bgColor={currentListGroup == "-1" ? theme['colors']['tertiary']['300'] : ''} sx={{ _text: { color: currentListGroup == "-1" ? theme['colors']['tertiary']['500-text'] : textColor } }} /> : null}
                                         </SelectContent>
                                    </SelectPortal>
                               </Select>
@@ -324,11 +471,55 @@ export const MyLists = () => {
                                         )}
                                         </Box>
                                         <FlatList contentContainerStyle={{ paddingBottom: 200 }} mt="$2" data={currentListGroupData.listsInGroup} renderItem={({ item }) => renderList(item, library.baseUrl)} keyExtractor={(item, index) => index.toString()} ListEmptyComponent={listEmptyComponent} />
-                                   </Box>
+                                        {currentListGroup != "-1" ? (
+                                             {groupsPaging}
+                                        ) : (
+                                             {unassignedPaging}
+                                        )}
+                                        </Box>
                               ) : null}
                          </Box>
                     ) : (
-                         <FlatList px="$5" mt="$2" data={lists} ListEmptyComponent={listEmptyComponent} renderItem={({ item }) => renderList(item, library.baseUrl)} keyExtractor={(item, index) => index.toString()} />
+                         <>
+                              <FlatList px="$5" mt="$2" data={lists} ListEmptyComponent={listEmptyComponent} renderItem={({ item }) => renderList(item, library.baseUrl)} keyExtractor={(item, index) => index.toString()} />
+                              <Box
+                                   p="$2"
+                                   borderTopWidth="$1"
+                                   bgColor={colorMode === 'light' ? theme['colors']['coolGray']['100'] : theme['colors']['coolGray']['700']}
+                                   borderColor={colorMode === 'light' ? theme['colors']['coolGray']['400'] : theme['colors']['gray']['600']}
+                                   flexWrap="nowrap"
+                                   alignItems="center">
+                                   <ScrollView horizontal>
+                                        <ButtonGroup size="sm">
+                                             <Button
+                                                  bgColor={theme['colors']['primary']['500']}
+                                                  onPress={async () => {
+                                                       if (page > 1) {
+                                                            updatePage(page - 1)
+                                                       }
+                                                  }}
+                                                  isDisabled={page === 1}>
+                                                  <ButtonText color={theme['colors']['primary']['500-text']} >{getTermFromDictionary(language, 'previous')}</ButtonText>
+                                             </Button>
+                                             <Button
+                                                  bgColor={theme['colors']['primary']['500']}
+                                                  onPress={async () => {
+                                                       if (lists?.page_current !== lists?.page_total) {
+                                                            logDebugMessage('Adding to page');
+                                                            let newPage = page + 1;
+                                                            updatePage(newPage);
+                                                       }
+                                                  }}
+                                                  isDisabled={!(lists?.page_current !== lists?.page_total)}>
+                                                  <ButtonText color={theme['colors']['primary']['500-text']} >{getTermFromDictionary(language, 'next')}</ButtonText>
+                                             </Button>
+                                        </ButtonGroup>
+                                   </ScrollView>
+                                   <Text mt="$2" fontSize="$sm" color={textColor}>
+                                        {paginationLabel}
+                                   </Text>
+                              </Box>
+                         </>
                     )}
           </Box>
      );

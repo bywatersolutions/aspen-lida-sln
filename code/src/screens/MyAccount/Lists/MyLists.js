@@ -68,6 +68,8 @@ export const MyLists = () => {
 
      const pageSize = 20;
 
+     const sortedLists = _.sortBy(lists?.lists, ['title']);
+
      React.useEffect(() => {
           if (defaultListGroup) {
                updateSelectedListGroup(defaultListGroup);
@@ -104,8 +106,7 @@ export const MyLists = () => {
           onSuccess: (data) => {
                if(data.ok) {
                     const results = data.data.result;
-                    const lists = formatLists(results.lists);
-                    updateLists(lists)
+                    updateLists(results)
                     let tmp = getTermFromDictionary(language, 'page_of_page');
                     tmp = tmp.replace('%1%', page ?? 1);
                     tmp = tmp.replace('%2%', results.page_total ?? 1);
@@ -152,7 +153,7 @@ export const MyLists = () => {
      });
 
      useQueries({
-          queries: lists.map((list) => {
+          queries: sortedLists?.map((list) => {
                return {
                     queryKey: ['list', list.id, user.id],
                     queryFn: () => getListTitles(list.id, library.baseUrl, 1, 25, 25, 'dateAdded'),
@@ -161,7 +162,7 @@ export const MyLists = () => {
      });
 
      useQueries({
-          queries: lists.map((list) => {
+          queries: sortedLists?.map((list) => {
                return {
                     queryKey: ['list-details', list.id, user.id],
                     queryFn: () => getListDetails(list.id, library.baseUrl),
@@ -172,11 +173,12 @@ export const MyLists = () => {
      const updateSelectedListGroup = async (groupId) => {
           setLoading(true);
           setCurrentListGroup(groupId);
-          await getListGroupDetails(groupId, library.baseUrl, page, pageSize, 1).then((res) => {
+          setPage(1);
+          await getListGroupDetails(groupId, library.baseUrl, 1, pageSize, 1).then((res) => {
                if(res.ok) {
                     const data = res.data.result;
                     let tmp = getTermFromDictionary(language, 'page_of_page');
-                    tmp = tmp.replace('%1%', page ?? 1);
+                    tmp = tmp.replace('%1%', 1);
                     tmp = tmp.replace('%2%', data.page_total ?? 1);
                     setPaginationLabel(tmp);
                     setCurrentListGroupData(data);
@@ -194,10 +196,37 @@ export const MyLists = () => {
           setLoading(true);
           setPage(value);
           if(type === 'listGroup') {
-               await queryClient.refetchQueries({ queryKey: ['list_groups', user.id, value, library.baseUrl] });
+               await getListGroupDetails(currentListGroup, library.baseUrl, value, pageSize, 1).then((res) => {
+                    if (res.ok) {
+                         const data = res.data.result;
+                         let tmp = getTermFromDictionary(language, 'page_of_page');
+                         tmp = tmp.replace('%1%', page ?? 1);
+                         tmp = tmp.replace('%2%', data.page_total ?? 1);
+                         setPaginationLabel(tmp);
+                         setCurrentListGroupData(data);
+                    } else {
+                         logDebugMessage('Error fetching user list group details for group ' + currentListGroup);
+                         logDebugMessage(res);
+                         getErrorMessage(res.code ?? 0, res.problem);
+                    }
+               });
+               setLoading(false);
                return;
           }
-          await queryClient.refetchQueries({ queryKey: ['lists', user.id, value, library.baseUrl] });
+          await getLists(library.baseUrl, value, pageSize, 1).then((res) => {
+               if (res.ok) {
+                    const results = data.data.result;
+                    updateLists(results);
+                    let tmp = getTermFromDictionary(language, 'page_of_page');
+                    tmp = tmp.replace('%1%', page ?? 1);
+                    tmp = tmp.replace('%2%', data.page_total ?? 1);
+                    setPaginationLabel(tmp);
+               } else {
+                    logDebugMessage('Error fetching user list group details for group ' + groupId);
+                    logDebugMessage(res);
+                    getErrorMessage(res.code ?? 0, res.problem);
+               }
+          });
      };
 
      const handleOpenList = (item) => {
@@ -339,50 +368,52 @@ export const MyLists = () => {
 
      return (
           <Box style={{ flex: 1 }}>
-                    <Box pt="$2" px="$5" flexWrap="nowrap">
-                         {showSystemMessage()}
-                         <ScrollView horizontal>
-                              <ButtonGroup space="sm">
-                                   <CreateList setLoading={setLoading} />
-                                   <CreateListGroup setLoading={setLoading} updateSelectedListGroup={updateSelectedListGroup} />
-                              </ButtonGroup>
-                         </ScrollView>
-                    </Box>
-                    {hasListGroups && Object.values(listGroups.groups.groups) ? (
-                         <Box px="$5" mt="$2">
-                              <Select name="listGroupSelect" selectedValue={currentListGroup} defaultValue={defaultListGroup} onValueChange={(itemValue) => updateSelectedListGroup(itemValue)}>
-                                   <SelectTrigger variant="outline" size="md">
-                                        {currentListGroup && currentListGroup !== "-1" && currentListGroup !== -1 ? (
-                                             _.map(Object.values(listGroups.groups.groups), function (group, selectedIndex, array) {
-                                                  if (group.id === currentListGroup) {
-                                                       return <SelectInput value={group.title} color={textColor} />;
-                                                  }
-                                             })
-                                        ) : currentListGroup == "-1" ? (
-                                             <SelectInput value={getTermFromDictionary(language, 'unassigned_lists')} color={textColor} />
-                                        ) : defaultListGroup ? (
-                                             <SelectInput value={defaultListGroup} color={textColor} />
-                                        ) : null}
-                                        <SelectIcon mr="$3" as={ChevronDownIcon} color={textColor} />
-                                   </SelectTrigger>
-                                   <SelectPortal>
-                                        <SelectBackdrop />
-                                        <SelectContent bgColor={colorMode === 'light' ? theme['colors']['warmGray']['50'] : theme['colors']['coolGray']['700']} pb={Platform.OS === 'android' ? insets.bottom + 16 : '$4'}>
-                                             <SelectDragIndicatorWrapper>
-                                                  <SelectDragIndicator />
-                                             </SelectDragIndicatorWrapper>
-                                             {_.map(Object.values(listGroups.groups.groups), function (item, index, array) {
-                                                  return <SelectItem key={index} value={item.id} label={item.title} bgColor={currentListGroup === item.id ? theme['colors']['tertiary']['300'] : ''} sx={{ _text: { color: currentListGroup === item.id ? theme['colors']['tertiary']['500-text'] : textColor } }} />;
-                                             })}
-                                             {listGroups.unassigned > 0 ? <SelectItem key={-1} value="-1" label={getTermFromDictionary(language, 'unassigned_lists')} bgColor={currentListGroup == "-1" ? theme['colors']['tertiary']['300'] : ''} sx={{ _text: { color: currentListGroup == "-1" ? theme['colors']['tertiary']['500-text'] : textColor } }} /> : null}
-                                        </SelectContent>
-                                   </SelectPortal>
-                              </Select>
-                              {currentListGroupData ? (
-                                   <Box mt="$2">
-                                        <Box>
-                                        <Heading size="xl" color={textColor}>{currentListGroupData.listGroupDetails?.title}</Heading>
-                                        {currentListGroup != "-1" && (
+               <Box pt="$2" px="$5" flexWrap="nowrap">
+                    {showSystemMessage()}
+                    <ScrollView horizontal>
+                         <ButtonGroup space="sm">
+                              <CreateList setLoading={setLoading} />
+                              <CreateListGroup setLoading={setLoading} updateSelectedListGroup={updateSelectedListGroup} />
+                         </ButtonGroup>
+                    </ScrollView>
+               </Box>
+               {hasListGroups && Object.values(listGroups.groups) ? (
+                    <Box px="$5" mt="$2">
+                         <Select name="listGroupSelect" selectedValue={currentListGroup} defaultValue={defaultListGroup} onValueChange={(itemValue) => updateSelectedListGroup(itemValue)}>
+                              <SelectTrigger variant="outline" size="md">
+                                   {currentListGroup && currentListGroup !== '-1' && currentListGroup !== -1 ? (
+                                        _.map(Object.values(listGroups.groups), function (group, selectedIndex, array) {
+                                             if (group.id === currentListGroup) {
+                                                  return <SelectInput value={group.title} color={textColor} />;
+                                             }
+                                        })
+                                   ) : currentListGroup == '-1' ? (
+                                        <SelectInput value={getTermFromDictionary(language, 'unassigned_lists')} color={textColor} />
+                                   ) : defaultListGroup ? (
+                                        <SelectInput value={defaultListGroup} color={textColor} />
+                                   ) : null}
+                                   <SelectIcon mr="$3" as={ChevronDownIcon} color={textColor} />
+                              </SelectTrigger>
+                              <SelectPortal>
+                                   <SelectBackdrop />
+                                   <SelectContent bgColor={colorMode === 'light' ? theme['colors']['warmGray']['50'] : theme['colors']['coolGray']['700']} pb={Platform.OS === 'android' ? insets.bottom + 16 : '$4'}>
+                                        <SelectDragIndicatorWrapper>
+                                             <SelectDragIndicator />
+                                        </SelectDragIndicatorWrapper>
+                                        {_.map(Object.values(listGroups.groups), function (item, index, array) {
+                                             return <SelectItem key={index} value={item.id} label={item.title} bgColor={currentListGroup === item.id ? theme['colors']['tertiary']['300'] : ''} sx={{ _text: { color: currentListGroup === item.id ? theme['colors']['tertiary']['500-text'] : textColor } }} />;
+                                        })}
+                                        {listGroups.unassigned > 0 ? <SelectItem key={-1} value="-1" label={getTermFromDictionary(language, 'unassigned_lists')} bgColor={currentListGroup == '-1' ? theme['colors']['tertiary']['300'] : ''} sx={{ _text: { color: currentListGroup == '-1' ? theme['colors']['tertiary']['500-text'] : textColor } }} /> : null}
+                                   </SelectContent>
+                              </SelectPortal>
+                         </Select>
+                         {currentListGroupData ? (
+                              <Box mt="$2">
+                                   <Box>
+                                        <Heading size="xl" color={textColor}>
+                                             {currentListGroupData.listGroupDetails?.title}
+                                        </Heading>
+                                        {currentListGroup != '-1' && (
                                              <ScrollView horizontal>
                                                   <HStack space="sm">
                                                        <EditListGroup id={currentListGroupData.listGroupDetails?.id} currentTitle={currentListGroupData.listGroupDetails?.title} handleUpdate={updateSelectedListGroup} />
@@ -391,18 +422,16 @@ export const MyLists = () => {
                                                   </HStack>
                                              </ScrollView>
                                         )}
-                                        </Box>
-                                        <FlatList contentContainerStyle={{ paddingBottom: 200 }} mt="$2" data={currentListGroupData.listsInGroup} renderItem={({ item }) => renderList(item, library.baseUrl)} keyExtractor={(item, index) => index.toString()} ListEmptyComponent={listEmptyComponent} />
-                                        {Paging('listGroup')}
-                                        </Box>
-                              ) : null}
-                         </Box>
-                    ) : (
-                         <>
-                              <FlatList px="$5" mt="$2" data={lists} ListEmptyComponent={listEmptyComponent} renderItem={({ item }) => renderList(item, library.baseUrl)} keyExtractor={(item, index) => index.toString()} />
-                              {Paging('lists')}
-                         </>
-                    )}
+                                   </Box>
+                                   <FlatList contentContainerStyle={{ paddingBottom: 200 }} mt="$2" data={currentListGroupData.listsInGroup} renderItem={({ item }) => renderList(item, library.baseUrl)} keyExtractor={(item, index) => index.toString()} ListEmptyComponent={listEmptyComponent} ListFooterComponent={Paging('listGroup')} />
+                              </Box>
+                         ) : null}
+                    </Box>
+               ) : (
+                    <>
+                         <FlatList px="$5" mt="$2" data={sortedLists} ListEmptyComponent={listEmptyComponent} renderItem={({ item }) => renderList(item, library.baseUrl)} keyExtractor={(item, index) => index.toString()} ListFooterComponent={Paging('lists')} />
+                    </>
+               )}
           </Box>
      );
 };

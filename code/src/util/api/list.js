@@ -59,8 +59,12 @@ export async function getLists(url, page= 1, limit = 20, includePagination = 1) 
 
 export function formatLists(data) {
      let lists = [];
-     if (!_.isUndefined(data.lists)) {
-          lists = _.sortBy(data.lists, ['title']);
+     if (!_.isUndefined(data)) {
+          if(data.lists) {
+               lists = _.sortBy(data.lists, ['title']);
+          } else {
+               lists = _.sortBy(data, ['title']);
+          }
      }
      PATRON.lists = lists;
      return lists;

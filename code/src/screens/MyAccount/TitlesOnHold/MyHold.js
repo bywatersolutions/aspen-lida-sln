@@ -522,7 +522,7 @@ export const ManageSelectedHolds = (props) => {
                               isLoadingText={getTermFromDictionary(language, 'freezing_hold', true)}
                               onPress={() => {
                                    startFreezing(true);
-                                   freezeHolds(titlesToFreeze, library.baseUrl, allowIndefinite = library.reactivateDateNotRequired ?? false).then((r) => {
+                                   freezeHolds(titlesToFreeze, library.baseUrl, null,'en', library.reactivateDateNotRequired ?? false).then((r) => {
                                         resetGroup();
                                         handleClose();
                                         startFreezing(false);
@@ -640,7 +640,7 @@ export const ManageAllHolds = (props) => {
                               isLoadingText={getTermFromDictionary(language, 'freezing_hold', true)}
                               onPress={() => {
                                    startFreezing(true);
-                                   freezeHolds(titlesToFreeze, library.baseUrl, allowIndefinite = library.reactivateDateNotRequired ?? false).then((r) => {
+                                   freezeHolds(titlesToFreeze, library.baseUrl, null,'en', library.reactivateDateNotRequired ?? false).then((r) => {
                                         resetGroup();
                                         onClose(onClose);
                                         startFreezing(false);

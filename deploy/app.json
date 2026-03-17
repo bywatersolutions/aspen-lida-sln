@@ -1,0 +1,15 @@
+{
+  "name": "Sacramento Public Library",
+  "slug": "sln",
+  "easId": "9f62bce1-4f21-45e7-8938-b073875ffd69",
+  "reverseDns": "org.aspendiscovery.sln",
+  "discoveryUrl": "https://sln.aspendiscovery.org/",
+  "greenhouseUrl": "https://sln.aspendiscovery.org/",
+  "libraryId": "1",
+  "themeId": "2",
+  "background": "#ffffff",
+  "sentryProject": "aspen-lida-sln",
+  "sentryDsn": "https://33ce854ae3a5825f62c28a35f1367cac@o994439.ingest.us.sentry.io/4508089986056192",
+  "ascAppId": "6736671615",
+  "logLevel": "0"
+}

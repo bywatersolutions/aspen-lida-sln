@@ -104,6 +104,8 @@ jobs:
     steps:
       - name: 🏗  Checkout repository
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.LIDA_ACCESS_TOKEN }}
 
       - name: 🔒 Configure curl Cloudflare bypass header
         run: |
